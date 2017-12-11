@@ -143,3 +143,16 @@ default one you can assingn your own IAM role arn to the variable **cloudtrail_l
 
 ### Example
 
+This example will create the default role.
+
+    - include_role:
+          name: aidaonoro.aidaonoro.enable_cloud_trail
+        vars:
+          account_id: "123456789012"
+          region: "us-west-1"
+          bucket_name: "trailLoggingBucket"
+          trail_tags: {MyTag: "MyTagValue"}
+          cloud_trail_log_group: "CloudTrailLogs"
+          kms_id: "arn:aws:kms:{{ region }}:{{ account_id }}:key/{{ rest_of_arn }}"
+          trail_name: "trailName"
+

@@ -71,6 +71,5 @@
       kms_key_id: "{{ kms_id }}"
       cloudwatch_logs_log_group_arn: "{{ cloud_trail_log_group }}"
       cloudwatch_logs_role_arn: "{{ cloudtrail_logs_role |  default(None) }}"
-      tags:
-        Compliance: "{{ compliance_tag }}"
+      tags: "{{ trail_tags }}"
   run_once: True
