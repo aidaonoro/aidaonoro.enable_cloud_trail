@@ -1,0 +1,76 @@
+---
+
+- block:
+    - name: "Enable CloudTrail | Creates the log group"
+      run_once: True
+      local_action: "command aws logs create-log-group --log-group-name {{ cloud_trail_log_group }}"
+
+  rescue:
+    - debug: msg='Log group already exists.'
+
+- name: "Enable CloudTrail | Get log group arn"
+  run_once: True
+  local_action: "shell aws logs describe-log-groups --log-group-name-prefix {{ cloud_trail_log_group }} | jq -r '.logGroups[0].arn' "
+  when: cloud_trail_log_group is defined
+  register: log_group_arn
+
+- name: "Enable CloudTrail | Create CloudWatch trail logs role"
+  run_once: True
+  local_action:
+    module: iam_role
+    args:
+      name: "cloud_trail_logs_role"
+      assume_role_policy_document: "{{ lookup('file','assume_role_policy.json') }}"
+      state: present
+  when: cloudtrail_logs_role is not defined
+  register: role_arn
+
+- local_action:
+    module: set_fact
+    args:
+      cloudtrail_logs_role: "{{ role_arn.iam_role.arn }}"
+  run_once: True
+  when: role_arn is defined
+
+- local_action:
+    module: set_fact
+    args:
+      policy_file: "{{ lookup('template','cloudtrail_logs_policy.json')}}"
+  run_once: True
+  when: role_arn is defined
+
+- local_action:
+    module: set_fact
+    args:
+      cloud_trail_log_group: "{{ log_group_arn.stdout | default(None) }}"
+  run_once: True
+
+- name: "Enable CloudTrail | Create basic CloudWatch logs policy"
+  local_action:
+    module: iam_policy
+    args:
+      iam_type: "role"
+      iam_name: "cloud_trail_logs_role"
+      policy_name: "cloud_trail_logs_policy"
+      state: present
+      policy_json: "{{ policy_file }}"
+  run_once: True
+  when: role_arn is defined
+
+- name: "Enable CloudTrail | Create trail"
+  local_action:
+    module: cloudtrail
+    args:
+      state: present
+      name: "{{ trail_name }}"
+      s3_bucket_name: "{{ bucket_name }}"
+      s3_key_prefix: "cloudtrail"
+      enable_logging: True
+      enable_log_file_validation: True
+      is_multi_region_trail: true
+      kms_key_id: "{{ kms_id }}"
+      cloudwatch_logs_log_group_arn: "{{ cloud_trail_log_group }}"
+      cloudwatch_logs_role_arn: "{{ cloudtrail_logs_role |  default(None) }}"
+      tags:
+        Compliance: "{{ compliance_tag }}"
+  run_once: True
