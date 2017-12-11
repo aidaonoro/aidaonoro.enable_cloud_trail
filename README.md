@@ -81,7 +81,7 @@ You should have a similar policy as the shown below and provide your KMS ARN:
       "Condition": {
         "StringEquals": {
           "kms:CallerAccount": "{{ account_id }}",
-          "kms:ViaService": "ec2.eu-west-1.amazonaws.com"
+          "kms:ViaService": "ec2.{{ region }}.amazonaws.com"
         }
       }
     },
